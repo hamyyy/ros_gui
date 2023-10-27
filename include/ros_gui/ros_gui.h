@@ -10,6 +10,8 @@
 #include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 
+#include <vector>
+
 namespace gui
 {
     class App
@@ -49,10 +51,24 @@ namespace gui
         Image(const char *img_topic);
         ~Image();
 
+        void *getTexture()
+        {
+            if (texture == 0)
+                return (void *)nullptr;
+            return (void *)(intptr_t)texture;
+        }
+
+        void updateData();
+        void setData(std::vector<uint8_t, std::allocator<uint8_t>> data);
+
+        int width;
+        int height;
+        std::vector<uint8_t, std::allocator<uint8_t>> data;
+
     private:
         GLuint texture;
 
-        ros::NodeHandle* nh;
+        ros::NodeHandle *nh;
         image_transport::Subscriber sub;
         void callback(const sensor_msgs::ImageConstPtr &msg);
     };

@@ -76,7 +76,7 @@ namespace gui
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); // try 3 if 4 doesn't work
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -172,7 +172,7 @@ namespace gui
         }
 
         bool running = true;
-        while (running)
+        while (running && ros::ok())
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -237,16 +237,48 @@ namespace gui
         }
     }
 
+    Image::Image(const char *img_topic) : texture(0), width(0), height(0)
+    {
+        nh = new ros::NodeHandle();
+        image_transport::ImageTransport it(*nh);
+        sub = it.subscribe(img_topic, 1, &Image::callback, this);
+
+        width = 640;
+        height = 480;
+        data.resize(width * height * 3);
+
+        // for (int i = 0; i < width * height * 3; i++)
+        // {
+        //     data[i] = rand() % 255;
+        // }
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
     Image::~Image()
     {
         delete nh;
     }
 
-    Image::Image(const char *img_topic)
+    void Image::updateData()
     {
-        nh = new ros::NodeHandle();
-        image_transport::ImageTransport it(*nh);
-        sub = it.subscribe(img_topic, 1, &Image::callback, this);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
+    }
+
+    void Image::setData(std::vector<uint8_t, std::allocator<uint8_t>> d)
+    {
+        if (d.size() != width * height * 3)
+        {
+            std::cerr << "[ERROR] Image data size does not match" << std::endl;
+            return;
+        }
+
+        data = d;
+        updateData();
     }
 
     void Image::callback(const sensor_msgs::ImageConstPtr &msg)
@@ -260,38 +292,46 @@ namespace gui
         // std::cout << "is_bigendian: " << msg->is_bigendian << std::endl;
         // std::cout << "======================" << std::endl;
 
+        bool resize = false;
+
+        if (width != msg->width || height != msg->height)
+        {
+            width = msg->width;
+            height = msg->height;
+            data.resize(width * height * 3);
+            resize = true;
+        }
+
         if (msg->encoding == "rgb8")
         {
-            if (texture == 0)
+            if (resize)
             {
+                glDeleteTextures(1, &texture);
                 glGenTextures(1, &texture);
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, msg->width, msg->height, 0, GL_RGB, GL_UNSIGNED_BYTE, msg->data.data());
                 glGenerateMipmap(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, 0);
             }
             else
             {
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, msg->width, msg->height, GL_RGB, GL_UNSIGNED_BYTE, msg->data.data());
-                glBindTexture(GL_TEXTURE_2D, 0);
             }
         }
         else if (msg->encoding == "bgr8")
         {
-            if (texture == 0)
+            if (resize)
             {
+                glDeleteTextures(1, &texture);
                 glGenTextures(1, &texture);
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, msg->width, msg->height, 0, GL_BGR, GL_UNSIGNED_BYTE, msg->data.data());
                 glGenerateMipmap(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, 0);
             }
             else
             {
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, msg->width, msg->height, GL_BGR, GL_UNSIGNED_BYTE, msg->data.data());
-                glBindTexture(GL_TEXTURE_2D, 0);
             }
         }
     }
