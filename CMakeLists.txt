@@ -31,10 +31,12 @@ find_package(SDL2 REQUIRED)
 set(GLAD_SOURCES "lib/glad/src/glad.c")
 set(GLAD_HEADERS "lib/glad/include")
 
-include_directories(${SDL2_INCLUDE_DIRS})
 
 add_library(glad ${GLAD_SOURCES} ${GLAD_HEADERS})
-target_include_directories(glad PUBLIC ${GLAD_HEADERS})
+target_include_directories(glad PUBLIC 
+    ${GLAD_HEADERS}
+    ${SDL2_INCLUDE_DIRS}
+)
 
 file(GLOB IMGUI_SOURCES 
     "lib/imgui/*.cpp"

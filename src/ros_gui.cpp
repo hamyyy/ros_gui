@@ -141,8 +141,8 @@ namespace gui
         (void)io;
 
         io.IniFilename = ini_filename.c_str();
-        // auto tff = ros::package::getPath(spec.package_name) + "/config/fonts/Verdana.ttf";
-        auto tff = ros::package::getPath(spec.package_name) + "/config/fonts/DroidSans.ttf";
+        // auto tff = ros::package::getPath(spec.library_name) + "/config/fonts/Verdana.ttf";
+        auto tff = ros::package::getPath(spec.library_name) + "/config/fonts/DroidSans.ttf";
         io.Fonts->AddFontFromFileTTF(tff.c_str(), 18.0f);
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;

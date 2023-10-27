@@ -21,6 +21,7 @@ namespace gui
                 window_height = 720;
             const char *window_title = "ROS GUI";
             const char *package_name = nullptr;
+            const char *library_name = "ros_gui";
         } spec;
 
         App(Spec spec, int argc, char *argv[]);
