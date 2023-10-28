@@ -237,8 +237,9 @@ namespace gui
         }
     }
 
-    Image::Image(const char *img_topic) : texture(0), width(0), height(0)
+    Image::Image(const std::string img_topic) : texture(-1), width(0), height(0)
     {
+        topicName = img_topic;
         nh = new ros::NodeHandle();
         image_transport::ImageTransport it(*nh);
         sub = it.subscribe(img_topic, 1, &Image::callback, this);
@@ -281,6 +282,89 @@ namespace gui
         updateData();
     }
 
+    void Image::draw(Flags flags, ImVec2 size)
+    {
+        if (texture == 0)
+            return;
+
+        if (size.x == 0 || size.y == 0)
+        {
+            size.x = width;
+            size.y = height;
+        }
+
+        ImVec2 uv0 = ImVec2(0, 0);
+        ImVec2 uv1 = ImVec2(1, 1);
+
+        if ((int)flags & (int)Flags::FlipVertically)
+        {
+            uv0.y = 1;
+            uv1.y = 0;
+        }
+
+        if ((int)flags & (int)Flags::FlipHorizontally)
+        {
+            uv0.x = 1;
+            uv1.x = 0;
+        }
+
+        if ((int)flags & (int)Flags::Rotate90)
+        {
+            uv0 = ImVec2(1, 0);
+            uv1 = ImVec2(0, 1);
+        }
+        else if ((int)flags & (int)Flags::Rotate180)
+        {
+            uv0 = ImVec2(1, 1);
+            uv1 = ImVec2(0, 0);
+        }
+        else if ((int)flags & (int)Flags::Rotate270)
+        {
+            uv0 = ImVec2(0, 1);
+            uv1 = ImVec2(1, 0);
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        std::string title = "Image##" + topicName;
+        ImGui::BeginChild(title.c_str(), size, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::PopStyleVar();
+
+        ImGui::Image((void *)(intptr_t)texture, size, uv0, uv1);
+
+        if (ros::Time::now() - lastUpdate > allowedSilenceTime)
+        {
+            imageReady = false;
+        }
+
+        if (!imageReady)
+        {
+            std::string text = "Waiting for " + topicName;
+            
+            ImVec2 pos;
+            auto cursor = ImGui::GetCursorPos();
+            auto textSize = ImGui::CalcTextSize(text.c_str());
+            auto style = ImGui::GetStyle();
+
+            pos.x = cursor.x + (size.x - textSize.x) * 0.5 - style.FramePadding.x;
+            pos.y = cursor.y - (size.y - textSize.y) * 0.5 - style.FramePadding.y;
+
+            ImGui::SetCursorPosX(pos.x);
+            ImGui::SetCursorPosY(pos.y);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 255));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+            ImGui::Button(text.c_str());
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor(3);
+
+            ImGui::SetCursorPos(cursor);
+        }
+
+        ImGui::EndChild();
+    }
+
     void Image::callback(const sensor_msgs::ImageConstPtr &msg)
     {
         // std::cout << "Image received" << std::endl;
@@ -294,7 +378,7 @@ namespace gui
 
         bool resize = false;
 
-        if (width != msg->width || height != msg->height)
+        if (width != msg->width || height != msg->height || !imageReady)
         {
             width = msg->width;
             height = msg->height;
@@ -334,5 +418,8 @@ namespace gui
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, msg->width, msg->height, GL_BGR, GL_UNSIGNED_BYTE, msg->data.data());
             }
         }
+
+        imageReady = true;
+        lastUpdate = ros::Time::now();
     }
 } // namespace ros

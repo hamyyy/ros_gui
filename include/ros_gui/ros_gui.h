@@ -11,6 +11,7 @@
 #include <image_transport/image_transport.h>
 
 #include <vector>
+#include <string>
 
 namespace gui
 {
@@ -48,7 +49,7 @@ namespace gui
     class Image
     {
     public:
-        Image(const char *img_topic);
+        Image(const std::string img_topic);
         ~Image();
 
         void *getTexture()
@@ -57,6 +58,19 @@ namespace gui
                 return (void *)nullptr;
             return (void *)(intptr_t)texture;
         }
+
+        enum class Flags
+        {
+            None = 0,
+            FlipVertically = 1 << 0,
+            FlipHorizontally = 1 << 1,
+
+            Rotate90 = 1 << 2,
+            Rotate180 = 1 << 3,
+            Rotate270 = 1 << 4,
+        };
+
+        void draw(Flags flags = Flags::None, ImVec2 size = ImVec2(0, 0));
 
         void updateData();
         void setData(std::vector<uint8_t, std::allocator<uint8_t>> data);
@@ -71,6 +85,12 @@ namespace gui
         ros::NodeHandle *nh;
         image_transport::Subscriber sub;
         void callback(const sensor_msgs::ImageConstPtr &msg);
+
+        bool imageReady = false;
+        std::string topicName;
+
+        ros::Time lastUpdate;
+        ros::Duration allowedSilenceTime = ros::Duration(3.0);
     };
 
 } // namespace ros
