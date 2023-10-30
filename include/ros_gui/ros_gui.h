@@ -70,7 +70,7 @@ namespace gui
             Rotate270 = 1 << 4,
         };
 
-        void draw(Flags flags = Flags::None, ImVec2 size = ImVec2(0, 0));
+        void draw(Flags flags = Flags::None, bool autoresize = true, ImVec2 size = ImVec2(0, 0));
 
         void updateData();
         void setData(std::vector<uint8_t, std::allocator<uint8_t>> data);

@@ -146,6 +146,13 @@ namespace gui
         io.Fonts->AddFontFromFileTTF(tff.c_str(), 18.0f);
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+        io.ConfigDockingTransparentPayload = true;
+        io.ConfigInputTextEnterKeepActive = true;
+        
+
 
         ImGui::StyleColorsDark();
 
@@ -282,7 +289,7 @@ namespace gui
         updateData();
     }
 
-    void Image::draw(Flags flags, ImVec2 size)
+    void Image::draw(Flags flags, bool autoresize, ImVec2 size)
     {
         if (texture == 0)
             return;
@@ -291,6 +298,18 @@ namespace gui
         {
             size.x = width;
             size.y = height;
+        }
+
+        if (autoresize)
+        {
+            auto avail = ImGui::GetContentRegionAvail();
+            auto ratio = (float)width / (float)height;
+
+            size = ImVec2(avail.x, avail.x / ratio);
+            if (size.y > avail.y)
+            {
+                size = ImVec2(avail.y * ratio, avail.y);
+            }
         }
 
         ImVec2 uv0 = ImVec2(0, 0);
@@ -339,7 +358,7 @@ namespace gui
         if (!imageReady)
         {
             std::string text = "Waiting for " + topicName;
-            
+
             ImVec2 pos;
             auto cursor = ImGui::GetCursorPos();
             auto textSize = ImGui::CalcTextSize(text.c_str());
@@ -394,7 +413,8 @@ namespace gui
                 glGenTextures(1, &texture);
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, msg->width, msg->height, 0, GL_RGB, GL_UNSIGNED_BYTE, msg->data.data());
-                glGenerateMipmap(GL_TEXTURE_2D);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             }
             else
             {
@@ -417,6 +437,27 @@ namespace gui
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, msg->width, msg->height, GL_BGR, GL_UNSIGNED_BYTE, msg->data.data());
             }
+        }
+        else if (msg->encoding == "mono8")
+        {
+            if (resize)
+            {
+                glDeleteTextures(1, &texture);
+                glGenTextures(1, &texture);
+                glBindTexture(GL_TEXTURE_2D, texture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, msg->width, msg->height, 0, GL_RED, GL_UNSIGNED_BYTE, msg->data.data());
+                glGenerateMipmap(GL_TEXTURE_2D);
+            }
+            else
+            {
+                glBindTexture(GL_TEXTURE_2D, texture);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, msg->width, msg->height, GL_RED, GL_UNSIGNED_BYTE, msg->data.data());
+            }
+        }
+        else
+        {
+            std::cerr << "[ERROR] Unsupported image encoding: " << msg->encoding << std::endl;
+            return;
         }
 
         imageReady = true;
