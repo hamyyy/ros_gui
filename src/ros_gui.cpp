@@ -87,6 +87,14 @@ namespace gui
             spec.window_width,
             spec.window_height,
             window_flags);
+
+        if (window == NULL)
+        {
+            std::cerr << "[ERROR] Failed to create a window: "
+                      << SDL_GetError() << std::endl;
+            return -1;
+        }
+        
         // limit to which minimum size user can resize the window
         SDL_SetWindowMinimumSize(window, 500, 300);
 
@@ -151,8 +159,6 @@ namespace gui
 
         io.ConfigDockingTransparentPayload = true;
         io.ConfigInputTextEnterKeepActive = true;
-        
-
 
         ImGui::StyleColorsDark();
 
@@ -164,8 +170,16 @@ namespace gui
         }
 
         // setup platform/renderer bindings
-        ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-        ImGui_ImplOpenGL3_Init(glsl_version);
+        if (!ImGui_ImplSDL2_InitForOpenGL(window, gl_context))
+        {
+            std::cerr << "[ERROR] Failed to initialize ImGui SDL2" << std::endl;
+            return;
+        }
+        if (!ImGui_ImplOpenGL3_Init(glsl_version))
+        {
+            std::cerr << "[ERROR] Failed to initialize ImGui OpenGL3" << std::endl;
+            return;
+        }
 
         ImVec4 background = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
         glClearColor(background.x, background.y, background.z, background.w);
