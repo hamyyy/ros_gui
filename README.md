@@ -1,16 +1,16 @@
-# ROS GUI Library
+# ROS GUI Library (ROS 2 Branch)
 
-This library is intended to be used with ros to create simple UI applications.
+This library is intended to be used with ros2 to create simple UI applications.
 
 It uses OpenGL and SDL2 to handle drawing the window, and uses Dear ImGui to draw UI elements.
 
 ## Installation
 
 ```bash
-cd ~/catkin_ws/src
+cd ~/ros_ws/src
 git clone https://github.com/hamyyy/ros_gui.git
 cd ..
-catkin_make
+colcon build
 ```
 
 To use this library, make sure to include it in your `CMakeLists.txt` and `Package.xml` files. Use [the provided example](./src/example.cpp) as a starting point.
