@@ -1,0 +1,2 @@
+/usr/bin/ar qc libros_gui.a CMakeFiles/ros_gui.dir/src/ros_gui.cpp.o
+/usr/bin/ranlib libros_gui.a

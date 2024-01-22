@@ -1,6 +1,5 @@
 #include <ros_gui/ros_gui.h>
 
-#include <ros/ros.h>
 
 void setup()
 {

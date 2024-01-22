@@ -6,9 +6,9 @@
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
-#include <ros/ros.h>
-#include <sensor_msgs/Image.h>
-#include <image_transport/image_transport.h>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <image_transport/image_transport.hpp>
 
 #include <vector>
 #include <string>
@@ -75,22 +75,22 @@ namespace gui
         void updateData();
         void setData(std::vector<uint8_t, std::allocator<uint8_t>> data);
 
-        int width;
-        int height;
+        uint32_t width;
+        uint32_t height;
         std::vector<uint8_t, std::allocator<uint8_t>> data;
 
     private:
         GLuint texture;
 
-        ros::NodeHandle *nh;
+        std::shared_ptr<rclcpp::Node> nh;
         image_transport::Subscriber sub;
-        void callback(const sensor_msgs::ImageConstPtr &msg);
+        void callback(const sensor_msgs::msg::Image::SharedPtr msg);
 
         bool imageReady = false;
         std::string topicName;
 
-        ros::Time lastUpdate;
-        ros::Duration allowedSilenceTime = ros::Duration(3.0);
+        rclcpp::Time lastUpdate;
+        rclcpp::Duration allowedSilenceTime = rclcpp::Duration(3.0, 0.0);
     };
 
-} // namespace ros
+} // namespace gui

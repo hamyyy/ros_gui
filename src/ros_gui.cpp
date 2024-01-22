@@ -1,25 +1,26 @@
 #include <ros_gui/ros_gui.h>
 
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <iostream>
+#include <string>
 
 namespace gui
 {
-    App::App(Spec s, int argc, char *argv[]) : spec(s)
+    App::App(Spec s, [[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) : spec(s)
     {
         if (spec.package_name == nullptr)
         {
             throw std::runtime_error("Package name is not specified.\n\n\nPlease specify the package name in the App::Spec struct.\n\n");
         }
 
-        if (ros::package::getPath(spec.package_name) == "")
+        if (ament_index_cpp::get_package_share_directory(spec.package_name) == "")
         {
             throw std::runtime_error("\n\nPackage \"" + std::string(spec.package_name) + "\" does not exist.\nPlease specify the correct package name in the App::Spec struct.\n\n");
         }
 
-        ini_filename = ros::package::getPath(spec.package_name) + "/config/imgui.ini";
+        ini_filename = ament_index_cpp::get_package_share_directory(spec.package_name) + "/config/imgui.ini";
     }
 
     App::~App()
@@ -94,7 +95,7 @@ namespace gui
                       << SDL_GetError() << std::endl;
             return -1;
         }
-        
+
         // limit to which minimum size user can resize the window
         SDL_SetWindowMinimumSize(window, 500, 300);
 
@@ -149,8 +150,8 @@ namespace gui
         (void)io;
 
         io.IniFilename = ini_filename.c_str();
-        // auto tff = ros::package::getPath(spec.library_name) + "/config/fonts/Verdana.ttf";
-        auto tff = ros::package::getPath(spec.library_name) + "/config/fonts/DroidSans.ttf";
+        // auto tff = ament_index_cpp::get_package_share_directory(spec.library_name) + "/config/fonts/Verdana.ttf";
+        auto tff = ament_index_cpp::get_package_share_directory(spec.library_name) + "/config/fonts/DroidSans.ttf";
         io.Fonts->AddFontFromFileTTF(tff.c_str(), 18.0f);
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
@@ -193,7 +194,7 @@ namespace gui
         }
 
         bool running = true;
-        while (running && ros::ok())
+        while (running)
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -258,31 +259,32 @@ namespace gui
         }
     }
 
-    Image::Image(const std::string img_topic) : texture(-1), width(0), height(0)
+    Image::Image([[maybe_unused]] const std::string img_topic) : width(0), height(0), texture(0)
     {
-        topicName = img_topic;
-        nh = new ros::NodeHandle();
-        image_transport::ImageTransport it(*nh);
-        sub = it.subscribe(img_topic, 1, &Image::callback, this);
+        // topicName = img_topic;
+        // rclcpp::NodeOptions options;
+        // nh = std::make_shared<rclcpp::Node>("image_node", options);
+        // image_transport::ImageTransport it(nh);
+        // sub = it.subscribe(img_topic, 1, std::bind(&Image::callback, this, std::placeholders::_1));
 
-        width = 640;
-        height = 480;
-        data.resize(width * height * 3);
+        // width = 640;
+        // height = 480;
+        // data.resize(width * height * 3);
 
-        // for (int i = 0; i < width * height * 3; i++)
-        // {
-        //     data[i] = rand() % 255;
-        // }
+        // // for (int i = 0; i < width * height * 3; i++)
+        // // {
+        // //     data[i] = rand() % 255;
+        // // }
 
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
-        glGenerateMipmap(GL_TEXTURE_2D);
+        // glGenTextures(1, &texture);
+        // glBindTexture(GL_TEXTURE_2D, texture);
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
+        // glGenerateMipmap(GL_TEXTURE_2D);
     }
 
     Image::~Image()
     {
-        delete nh;
+        nh.reset();
     }
 
     void Image::updateData()
@@ -293,7 +295,7 @@ namespace gui
 
     void Image::setData(std::vector<uint8_t, std::allocator<uint8_t>> d)
     {
-        if (d.size() != width * height * 3)
+        if ((uint32_t)d.size() != width * height * 3)
         {
             std::cerr << "[ERROR] Image data size does not match" << std::endl;
             return;
@@ -364,7 +366,7 @@ namespace gui
 
         ImGui::Image((void *)(intptr_t)texture, size, uv0, uv1);
 
-        if (ros::Time::now() - lastUpdate > allowedSilenceTime)
+        if (rclcpp::Clock().now() - lastUpdate > allowedSilenceTime)
         {
             imageReady = false;
         }
@@ -398,7 +400,7 @@ namespace gui
         ImGui::EndChild();
     }
 
-    void Image::callback(const sensor_msgs::ImageConstPtr &msg)
+    void Image::callback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         // std::cout << "Image received" << std::endl;
         // std::cout << "width: " << msg->width << std::endl;
@@ -475,6 +477,6 @@ namespace gui
         }
 
         imageReady = true;
-        lastUpdate = ros::Time::now();
+        lastUpdate = rclcpp::Clock().now();
     }
 } // namespace ros
