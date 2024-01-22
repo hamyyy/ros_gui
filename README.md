@@ -1,5 +1,7 @@
 # ROS GUI Library
 
+**Please use [`ros2`](https://github.com/hamyyy/ros_gui/tree/ros2) branch to use this library with ROS2**
+
 This library is intended to be used with ros to create simple UI applications.
 
 It uses OpenGL and SDL2 to handle drawing the window, and uses Dear ImGui to draw UI elements.
